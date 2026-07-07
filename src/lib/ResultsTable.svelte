@@ -9,6 +9,7 @@
     jewel,
     league = 'Standard',
     selected = null,
+    socketNames = {},
     onselect,
   }: {
     results: SearchResult[];
@@ -17,6 +18,7 @@
     jewel: JewelType;
     league?: string;
     selected?: SearchResult | null;
+    socketNames?: Record<string, string>;
     onselect?: (r: SearchResult) => void;
   } = $props();
 
@@ -45,7 +47,7 @@
               <td class="dim">{i + 1}</td>
               <td>{conquerors[r.variant]?.name ?? `#${r.variant}`}</td>
               <td class="mono">{r.seed}</td>
-              <td class="mono">{r.socketId}</td>
+              <td class="socket" title={String(r.socketId)}>{socketNames[r.socketId] ?? `#${r.socketId}`}</td>
               <td class="score">{r.score}</td>
               <td class="gives">
                 {#each r.breakdown as b (b.outcomeId)}
@@ -99,6 +101,9 @@
   .mono {
     font-variant-numeric: tabular-nums;
     font-family: ui-monospace, monospace;
+  }
+  .socket {
+    white-space: nowrap;
   }
   .dim {
     color: #666;

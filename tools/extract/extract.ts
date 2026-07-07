@@ -19,6 +19,54 @@ import {
   type SchemaTable,
 } from './dat-lib';
 import { parseStatDescriptions } from './stat-descriptions';
+import { nodeWorldPos, type TreeData } from '../../src/core/radius';
+
+// Label each jewel socket by a recognisable landmark: the nearest keystone
+// (Iron Reflexes, The Agnostic, …) when one is reasonably close, otherwise the
+// nearest notable. Static per socket, far more recognisable than the numeric id.
+const KEYSTONE_MAX_DIST = 2000;
+function collectLandmarks(tree: TreeData, pick: 'isNotable' | 'isKeystone') {
+  const out: { name: string; x: number; y: number }[] = [];
+  for (const n of Object.values(tree.nodes)) {
+    const a = n as Record<string, unknown> & {
+      name?: string;
+      group?: number;
+      orbit?: number;
+      orbitIndex?: number;
+    };
+    if (a[pick] && a.name && a.group !== undefined && a.orbit !== undefined) {
+      const p = nodeWorldPos(a, tree);
+      out.push({ name: a.name, x: p.x, y: p.y });
+    }
+  }
+  return out;
+}
+function nearest(list: { name: string; x: number; y: number }[], sp: { x: number; y: number }) {
+  let best: string | undefined;
+  let bestD = Infinity;
+  for (const nb of list) {
+    const d = (nb.x - sp.x) ** 2 + (nb.y - sp.y) ** 2;
+    if (d < bestD) {
+      bestD = d;
+      best = nb.name;
+    }
+  }
+  return { name: best, dist: Math.sqrt(bestD) };
+}
+function socketNames(tree: TreeData): Record<number, string> {
+  const keystones = collectLandmarks(tree, 'isKeystone');
+  const notables = collectLandmarks(tree, 'isNotable');
+  const out: Record<number, string> = {};
+  for (const sid of tree.jewelSlots) {
+    const s = tree.nodes[String(sid)];
+    if (!s) continue;
+    const sp = nodeWorldPos(s, tree);
+    const ks = nearest(keystones, sp);
+    const name = ks.name && ks.dist <= KEYSTONE_MAX_DIST ? ks.name : nearest(notables, sp).name;
+    if (name) out[sid] = name;
+  }
+  return out;
+}
 
 const POE1 = 1; // schema validFor bit
 
@@ -209,6 +257,7 @@ async function main() {
     'passive_skills.json': passive_skills,
     'stats.json': stats_ids,
     'stat_descriptions.json': stat_descriptions,
+    'socket_names.json': socketNames(treeJson as unknown as TreeData),
   };
 
   const checksums: Record<string, string> = {};

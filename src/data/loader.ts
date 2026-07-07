@@ -21,6 +21,19 @@ function baseUrl(): string {
   }
 }
 
+// socketId -> nearest notable name (jewel-independent). Loaded once for result labels.
+let socketNamesPromise: Promise<Record<string, string>> | null = null;
+export function loadSocketNames(): Promise<Record<string, string>> {
+  if (!socketNamesPromise) {
+    socketNamesPromise = (async () => {
+      const res = await fetch(`${baseUrl()}data/${TREE_VERSION}/socket_names.json`);
+      if (!res.ok) throw new Error(`failed to load socket names: ${res.status}`);
+      return (await res.json()) as Record<string, string>;
+    })();
+  }
+  return socketNamesPromise;
+}
+
 const labelCache = new Map<JewelType, Promise<Record<string, string>>>();
 
 // Outcome-id → human label catalog for the target picker (built by precompute).

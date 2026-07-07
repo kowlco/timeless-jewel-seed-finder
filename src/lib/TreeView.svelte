@@ -13,10 +13,12 @@
     result,
     jewel,
     conqueror,
+    socketName,
   }: {
     result: SearchResult | null;
     jewel: JewelType;
     conqueror: Conqueror | undefined;
+    socketName?: string;
   } = $props();
 
   type Kind = 'keystone' | 'notable' | 'stat' | 'plain';
@@ -284,10 +286,11 @@
 {#if result}
   <section class="tv">
     <div class="legend">
+      {#if socketName}<span class="socket-name">{socketName}</span>{/if}
       <span class="k keystone">keystone</span>
       <span class="k notable">notable</span>
       <span class="k stat">stat / augment</span>
-      <span class="dim">hover a node for details</span>
+      <span class="dim">hover a node</span>
     </div>
     <div class="canvas-wrap">
       <canvas
@@ -358,6 +361,11 @@
   }
   .dim {
     color: #777;
+  }
+  .socket-name {
+    font-weight: 600;
+    color: #eee;
+    margin-right: 0.25rem;
   }
   .tooltip {
     position: absolute;

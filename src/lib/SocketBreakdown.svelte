@@ -9,10 +9,12 @@
     result,
     jewel,
     conqueror,
+    socketName,
   }: {
     result: SearchResult | null;
     jewel: JewelType;
     conqueror: Conqueror | undefined;
+    socketName?: string;
   } = $props();
 
   interface Line {
@@ -73,7 +75,7 @@
 
 {#if result}
   <section class="bd">
-    <h3>Socket {result.socketId} · seed {result.seed} · {conqueror?.name}</h3>
+    <h3>{socketName ?? `Socket #${result.socketId}`} · seed {result.seed} · {conqueror?.name}</h3>
     {#if status === 'loading'}
       <p class="dim">loading tree…</p>
     {:else if status === 'error'}

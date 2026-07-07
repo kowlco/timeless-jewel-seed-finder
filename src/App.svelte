@@ -1,6 +1,6 @@
 <script lang="ts">
   import { JEWEL_NAMES, CONQUERORS, type JewelType, type Target } from './core/types';
-  import { loadLabels } from './data/loader';
+  import { loadLabels, loadSocketNames } from './data/loader';
   import { runSearch } from './lib/searchClient';
   import type { SearchResult } from './core/types';
   import ResultsTable from './lib/ResultsTable.svelte';
@@ -16,8 +16,15 @@
   let targets = $state<(Target & { label: string })[]>([]);
   let results = $state<SearchResult[]>([]);
   let selected = $state<SearchResult | null>(null);
+  let socketNames = $state<Record<string, string>>({});
   let status = $state<'idle' | 'loading' | 'searching' | 'error'>('idle');
   let errorMsg = $state('');
+
+  $effect(() => {
+    loadSocketNames()
+      .then((n) => (socketNames = n))
+      .catch(() => {});
+  });
 
   $effect(() => {
     const j = jewel;
@@ -159,14 +166,25 @@
         {labels}
         {jewel}
         {selected}
+        {socketNames}
         conquerors={CONQUERORS[jewel]}
         onselect={(r) => (selected = r)}
       />
     </div>
     {#if selected}
       <aside class="detail-col">
-        <TreeView result={selected} {jewel} conqueror={CONQUERORS[jewel][selected.variant]} />
-        <SocketBreakdown result={selected} {jewel} conqueror={CONQUERORS[jewel][selected.variant]} />
+        <TreeView
+          result={selected}
+          {jewel}
+          conqueror={CONQUERORS[jewel][selected.variant]}
+          socketName={socketNames[selected.socketId]}
+        />
+        <SocketBreakdown
+          result={selected}
+          {jewel}
+          conqueror={CONQUERORS[jewel][selected.variant]}
+          socketName={socketNames[selected.socketId]}
+        />
       </aside>
     {/if}
   </div>
