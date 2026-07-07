@@ -52,20 +52,25 @@ function runJewel(jewel: JewelType) {
   for (const r of load('passive_skills.json') as RawRow[]) {
     if (r.PassiveSkillGraphId !== undefined) graphToIndex.set(r.PassiveSkillGraphId, r._index);
   }
-  const altSkillMeta = new Map<number, { stats: number[]; kind: 'keystone' | 'notable' | 'small' }>();
-  for (const r of load('alternate_passive_skills.json') as RawRow[]) {
+  const altSkillMeta = new Map<
+    number,
+    { stats: number[]; kind: 'keystone' | 'notable' | 'small'; name: string }
+  >();
+  for (const r of load('alternate_passive_skills.json') as (RawRow & { Name?: string })[]) {
     const pt = r.PassiveType ?? [];
     const kind = pt.includes(PassiveSkillType.KeyStone)
       ? 'keystone'
       : pt.includes(PassiveSkillType.Notable)
         ? 'notable'
         : 'small';
-    altSkillMeta.set(r._index, { stats: r.StatsKeys ?? [], kind });
+    altSkillMeta.set(r._index, { stats: r.StatsKeys ?? [], kind, name: r.Name ?? '' });
   }
   const altAddStats = new Map<number, number[]>();
   for (const r of load('alternate_passive_additions.json') as RawRow[]) {
     altAddStats.set(r._index, r.StatsKeys ?? []);
   }
+  const statId = new Map<number, string>();
+  for (const r of load('stats.json') as { _index: number; Id: string }[]) statId.set(r._index, r.Id);
 
   // Valid transformable passive indices per socket (radius is seed/variant independent).
   const sockets = tree.jewelSlots.slice(0, maxSockets);
@@ -123,7 +128,10 @@ function runJewel(jewel: JewelType) {
   const gz = gzipSync(raw, { level: 9 });
   const outDir = resolve(ROOT, 'public/shards', version);
   mkdirSync(outDir, { recursive: true });
-  writeFileSync(resolve(outDir, `${jewel}.bin.gz`), gz);
+  // Extension is deliberately NOT `.gz`: a `.gz` name makes static servers set
+  // Content-Encoding: gzip, which the browser transparently decompresses — then our
+  // manual DecompressionStream would double-decompress. `.bin` holds the gzip bytes.
+  writeFileSync(resolve(outDir, `${jewel}.bin`), gz);
   const meta = {
     jewel,
     treeVersion: version,
@@ -135,6 +143,18 @@ function runJewel(jewel: JewelType) {
     gzBytes: gz.length,
   };
   writeFileSync(resolve(outDir, `${jewel}.meta.json`), JSON.stringify(meta, null, 2));
+
+  // Label catalog for the target picker: every outcome id in this jewel's dictionary.
+  const labels: Record<string, string> = {};
+  for (const id of encoder.getDict()) {
+    const sep = id.indexOf(':');
+    const kind = id.slice(0, sep);
+    const n = Number(id.slice(sep + 1));
+    if (kind === 'notable' || kind === 'keystone') labels[id] = altSkillMeta.get(n)?.name || id;
+    else if (kind === 'stat') labels[id] = statId.get(n) || id;
+    else labels[id] = id;
+  }
+  writeFileSync(resolve(outDir, `${jewel}.labels.json`), JSON.stringify(labels));
   console.log('done', JSON.stringify(meta));
 }
 

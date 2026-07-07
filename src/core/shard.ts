@@ -99,6 +99,9 @@ export class ShardEncoder {
     }
     this.rowCount++;
   }
+  getDict(): string[] {
+    return this.dict;
+  }
   finish(): Uint8Array {
     const w = new ByteWriter();
     const enc = new TextEncoder();
