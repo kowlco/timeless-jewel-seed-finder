@@ -15,8 +15,6 @@ import {
   getAltSkillKeystone,
 } from './tables';
 
-export { loadTables } from './tables';
-
 export interface AltInfo {
   skill: number | null;
   statRolls: number[];

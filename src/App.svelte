@@ -4,6 +4,7 @@
   import { runSearch } from './lib/searchClient';
   import type { SearchResult } from './core/types';
   import ResultsTable from './lib/ResultsTable.svelte';
+  import SocketBreakdown from './lib/SocketBreakdown.svelte';
 
   const JEWELS = [1, 2, 3, 4, 5, 6] as JewelType[];
 
@@ -13,6 +14,7 @@
   let query = $state('');
   let targets = $state<(Target & { label: string })[]>([]);
   let results = $state<SearchResult[]>([]);
+  let selected = $state<SearchResult | null>(null);
   let status = $state<'idle' | 'loading' | 'searching' | 'error'>('idle');
   let errorMsg = $state('');
 
@@ -58,6 +60,7 @@
     if (targets.length === 0) return;
     status = 'searching';
     results = [];
+    selected = null;
     try {
       results = await runSearch({
         jewel,
@@ -148,7 +151,15 @@
     {#if status === 'error'}<p class="err">{errorMsg}</p>{/if}
   </section>
 
-  <ResultsTable {results} {labels} {jewel} conquerors={CONQUERORS[jewel]} />
+  <ResultsTable
+    {results}
+    {labels}
+    {jewel}
+    {selected}
+    conquerors={CONQUERORS[jewel]}
+    onselect={(r) => (selected = r)}
+  />
+  <SocketBreakdown result={selected} {jewel} conqueror={selected ? CONQUERORS[jewel][selected.variant] : undefined} />
 </main>
 
 <style>

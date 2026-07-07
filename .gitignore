@@ -11,3 +11,5 @@ data/shards/
 
 # generated shards
 public/shards/
+
+public/data/

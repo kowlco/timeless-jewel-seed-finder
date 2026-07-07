@@ -5,6 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "assets": "node tools/copy-assets.mjs",
+    "predev": "node tools/copy-assets.mjs",
+    "prebuild": "node tools/copy-assets.mjs",
     "build": "vite build",
     "preview": "vite preview",
     "check": "svelte-check --tsconfig ./tsconfig.app.json && tsc -p tsconfig.node.json",

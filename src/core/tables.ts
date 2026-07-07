@@ -1,9 +1,6 @@
 // Typed loaders + data accessors ported from reference data/manager.go + data/main.go.
 // Column names come from our own extraction (data/<ver>/*.json); positional c<N>
 // columns equal the reference's Var<N> (verified — see extraction-findings note).
-import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
-
 export const PassiveSkillType = {
   None: 0,
   SmallAttribute: 1,
@@ -65,11 +62,15 @@ export interface Tables {
 type Row = Record<string, unknown>;
 const num = (v: unknown): number => (v as number) ?? 0;
 
-export function loadTables(dataDir: string): Tables {
-  const read = (f: string): Row[] => JSON.parse(readFileSync(resolve(dataDir, f), 'utf8')) as Row[];
-
+// Pure table builder from raw extracted rows — shared by Node and browser loaders.
+export function buildTables(
+  passiveRows: Row[],
+  atvRows: Row[],
+  altSkillRows: Row[],
+  altAddRows: Row[],
+): Tables {
   const passiveByIndex = new Map<number, PassiveSkill>();
-  for (const r of read('passive_skills.json')) {
+  for (const r of passiveRows) {
     passiveByIndex.set(num(r._index), {
       index: num(r._index),
       statIndices: (r.Stats as number[]) ?? [],
@@ -81,7 +82,7 @@ export function loadTables(dataDir: string): Tables {
   }
 
   const atvByIndex = new Map<number, AltTreeVersion>();
-  for (const r of read('alternate_tree_versions.json')) {
+  for (const r of atvRows) {
     atvByIndex.set(num(r.Index), {
       index: num(r.Index),
       areSmallAttributeReplaced: r.AreSmallAttributePassiveSkillsReplaced === true,
@@ -92,7 +93,7 @@ export function loadTables(dataDir: string): Tables {
     });
   }
 
-  const allAltSkills: AltSkill[] = read('alternate_passive_skills.json').map((r) => ({
+  const allAltSkills: AltSkill[] = altSkillRows.map((r) => ({
     index: num(r._index),
     atvKey: num(r.AlternateTreeVersionsKey),
     passiveType: (r.PassiveType as number[]) ?? [],
@@ -107,7 +108,7 @@ export function loadTables(dataDir: string): Tables {
     stat1Min: num(r.Stat1Min),
   }));
 
-  const allAltAdditions: AltAddition[] = read('alternate_passive_additions.json').map((r) => ({
+  const allAltAdditions: AltAddition[] = altAddRows.map((r) => ({
     index: num(r._index),
     atvKey: num(r.AlternateTreeVersionsKey),
     passiveType: (r.PassiveType as number[]) ?? [],

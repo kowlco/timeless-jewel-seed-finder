@@ -8,13 +8,23 @@
     conquerors,
     jewel,
     league = 'Standard',
+    selected = null,
+    onselect,
   }: {
     results: SearchResult[];
     labels: Record<string, string>;
     conquerors: Conqueror[];
     jewel: JewelType;
     league?: string;
+    selected?: SearchResult | null;
+    onselect?: (r: SearchResult) => void;
   } = $props();
+
+  const isSel = (r: SearchResult) =>
+    selected != null &&
+    selected.variant === r.variant &&
+    selected.socketId === r.socketId &&
+    selected.seed === r.seed;
 
   const label = (id: string) => labels[id] ?? id;
   const tradeHref = (r: SearchResult) =>
@@ -31,7 +41,7 @@
         </thead>
         <tbody>
           {#each results as r, i (`${r.variant}-${r.socketId}-${r.seed}`)}
-            <tr>
+            <tr class:sel={isSel(r)} onclick={() => onselect?.(r)}>
               <td class="dim">{i + 1}</td>
               <td>{conquerors[r.variant]?.name ?? `#${r.variant}`}</td>
               <td class="mono">{r.seed}</td>
@@ -43,7 +53,13 @@
                 {/each}
               </td>
               <td>
-                <a class="trade" href={tradeHref(r)} target="_blank" rel="noopener noreferrer">trade ↗</a>
+                <a
+                  class="trade"
+                  href={tradeHref(r)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onclick={(e) => e.stopPropagation()}>trade ↗</a
+                >
               </td>
             </tr>
           {/each}
@@ -107,6 +123,15 @@
     color: #999;
     font-style: normal;
     margin-left: 0.2rem;
+  }
+  tbody tr {
+    cursor: pointer;
+  }
+  tbody tr:hover {
+    background: #202028;
+  }
+  tbody tr.sel {
+    background: #24303f;
   }
   .trade {
     color: #7aa2f7;

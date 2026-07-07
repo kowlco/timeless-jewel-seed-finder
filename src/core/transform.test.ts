@@ -1,7 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { calculate, loadTables, type AltInfo } from './transform';
+import { calculate, type AltInfo } from './transform';
+import { loadTables } from './tablesNode';
 import { CONQUERORS, type JewelType } from './types';
 
 const version = JSON.parse(
