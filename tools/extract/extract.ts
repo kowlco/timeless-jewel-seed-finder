@@ -137,7 +137,19 @@ interface RawTreeNode {
   stats?: string[];
   icon?: string;
   out?: string[];
-  expansionJewel?: unknown; // present on cluster sockets — excluded from timeless slots
+  // Cluster-jewel socket metadata. The 6 Large sockets on the main tree are proxy
+  // roots (no `parent`) and DO accept timeless jewels; Medium/Small sockets are
+  // cluster-spawned (have `parent`) and do not.
+  expansionJewel?: { size?: number; parent?: string };
+}
+
+// The 21 sockets a timeless jewel can actually occupy: the 15 Basic Jewel Sockets
+// plus the 6 Large Jewel Sockets (proxy roots). Everything else in `jewelSlots` —
+// cluster-spawned Medium/Small sockets and Charm Sockets — is excluded.
+function isTimelessSlot(n: RawTreeNode | undefined): boolean {
+  if (!n) return false;
+  if (n.expansionJewel) return !n.expansionJewel.parent; // Large root sockets only
+  return n.name === 'Basic Jewel Socket'; // Basic sockets; excludes Charm Socket
 }
 
 interface SpriteSheet {
@@ -181,9 +193,7 @@ function normalizeTree(raw: {
   }
   const groups: Record<string, { x: number; y: number }> = {};
   for (const [id, g] of Object.entries(raw.groups)) groups[id] = { x: g.x, y: g.y };
-  // Timeless jewels go only in regular (non-cluster) sockets. Cluster sockets carry
-  // an `expansionJewel` property — exclude them.
-  const timelessSlots = raw.jewelSlots.filter((id) => !raw.nodes[String(id)]?.expansionJewel);
+  const timelessSlots = raw.jewelSlots.filter((id) => isTimelessSlot(raw.nodes[String(id)]));
   return {
     constants: {
       orbitRadii: raw.constants.orbitRadii,
