@@ -8,12 +8,14 @@
   import TreeView from './lib/TreeView.svelte';
 
   const JEWELS = [1, 2, 3, 4, 5, 6] as JewelType[];
+  const RESULT_CAP = 5000; // safety cap on rendered rows; narrow with minMatches
 
   let jewel = $state<JewelType>(1);
   let variants = $state<number[]>([]); // empty = all conquerors
   let labels = $state<Record<string, string>>({});
   let query = $state('');
   let targets = $state<(Target & { label: string })[]>([]);
+  let minMatches = $state(1);
   let results = $state<SearchResult[]>([]);
   let selected = $state<SearchResult | null>(null);
   let socketNames = $state<Record<string, string>>({});
@@ -74,7 +76,8 @@
         jewel,
         variants: [...variants],
         targets: targets.map(({ outcomeId, weight, required }) => ({ outcomeId, weight, required })),
-        topN: 200,
+        topN: RESULT_CAP,
+        minMatches: Math.max(1, minMatches || 1),
       });
       status = 'idle';
     } catch (e) {
@@ -153,6 +156,14 @@
       </ul>
     {/if}
 
+    <div class="row">
+      <span>Min matches</span>
+      <div class="minmatch">
+        <input type="number" min="1" step="1" bind:value={minMatches} />
+        <span class="hint">only show seeds with at least this many matched passives</span>
+      </div>
+    </div>
+
     <button class="search" onclick={doSearch} disabled={!targets.length || status === 'searching'}>
       {status === 'searching' ? 'Searching…' : 'Search all sockets'}
     </button>
@@ -167,6 +178,7 @@
         {jewel}
         {selected}
         {socketNames}
+        capped={results.length >= RESULT_CAP}
         conquerors={CONQUERORS[jewel]}
         onselect={(r) => (selected = r)}
       />
@@ -248,6 +260,14 @@
   }
   .hint {
     color: #666;
+  }
+  .minmatch {
+    display: flex;
+    gap: 0.6rem;
+    align-items: center;
+  }
+  .minmatch input {
+    width: 5rem;
   }
   .picker {
     position: relative;

@@ -10,6 +10,7 @@
     league = 'Standard',
     selected = null,
     socketNames = {},
+    capped = false,
     onselect,
   }: {
     results: SearchResult[];
@@ -19,6 +20,7 @@
     league?: string;
     selected?: SearchResult | null;
     socketNames?: Record<string, string>;
+    capped?: boolean;
     onselect?: (r: SearchResult) => void;
   } = $props();
 
@@ -35,7 +37,10 @@
 
 {#if results.length}
   <section class="results">
-    <h2>{results.length} results</h2>
+    <h2>
+      {results.length} results
+      {#if capped}<span class="capnote">(capped at {results.length} — raise “min matches” to narrow)</span>{/if}
+    </h2>
     <div class="scroll">
       <table>
         <thead>
@@ -74,6 +79,12 @@
 <style>
   .results {
     margin-top: 1.25rem;
+  }
+  .capnote {
+    font-size: 0.8rem;
+    font-weight: 400;
+    color: #d19a66;
+    margin-left: 0.5rem;
   }
   .scroll {
     overflow-x: auto;

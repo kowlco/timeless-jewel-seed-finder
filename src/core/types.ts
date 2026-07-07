@@ -91,5 +91,6 @@ export interface SearchResult {
   seed: number;
   socketId: number;
   score: number;
+  matches: number; // total matched passives (Σ counts, unweighted)
   breakdown: { outcomeId: string; count: number }[];
 }

@@ -9,6 +9,7 @@ export interface SearchRequest {
   variants: number[]; // variant indices to include; empty = all
   targets: Target[];
   topN: number;
+  minMatches?: number; // drop results with fewer than this many total matches
 }
 
 self.onmessage = async (e: MessageEvent<SearchRequest>) => {
@@ -18,7 +19,7 @@ self.onmessage = async (e: MessageEvent<SearchRequest>) => {
     const rows = await loadShard(msg.jewel);
     const filtered =
       msg.variants.length > 0 ? rows.filter((r) => msg.variants.includes(r.variant)) : rows;
-    const results = search(msg.jewel, filtered, msg.targets, msg.topN);
+    const results = search(msg.jewel, filtered, msg.targets, msg.topN, msg.minMatches ?? 0);
     self.postMessage({ type: 'result', results });
   } catch (err) {
     self.postMessage({ type: 'error', message: err instanceof Error ? err.message : String(err) });

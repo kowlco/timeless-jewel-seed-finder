@@ -19,12 +19,17 @@ import {
   type SchemaTable,
 } from './dat-lib';
 import { parseStatDescriptions } from './stat-descriptions';
-import { nodeWorldPos, type TreeData } from '../../src/core/radius';
+import { nodeWorldPos, LARGE_RADIUS, type TreeData } from '../../src/core/radius';
 
-// Label each jewel socket by a recognisable landmark: the nearest keystone
-// (Iron Reflexes, The Agnostic, …) when one is reasonably close, otherwise the
-// nearest notable. Static per socket, far more recognisable than the numeric id.
-const KEYSTONE_MAX_DIST = 2000;
+// Label each jewel socket the way Path of Building does (TreeTab.lua): three
+// keystone-less sockets get a region name, everything else is named by the
+// nearest keystone within the jewel radius. Falls back to the nearest notable
+// so a socket is never left blank.
+const SOCKET_REGION: Record<number, string> = {
+  26725: 'Marauder',
+  54127: 'Duelist',
+  7960: 'Templar/Witch',
+};
 function collectLandmarks(tree: TreeData, pick: 'isNotable' | 'isKeystone') {
   const out: { name: string; x: number; y: number }[] = [];
   for (const n of Object.values(tree.nodes)) {
@@ -58,11 +63,15 @@ function socketNames(tree: TreeData): Record<number, string> {
   const notables = collectLandmarks(tree, 'isNotable');
   const out: Record<number, string> = {};
   for (const sid of tree.jewelSlots) {
+    if (SOCKET_REGION[sid]) {
+      out[sid] = SOCKET_REGION[sid];
+      continue;
+    }
     const s = tree.nodes[String(sid)];
     if (!s) continue;
     const sp = nodeWorldPos(s, tree);
     const ks = nearest(keystones, sp);
-    const name = ks.name && ks.dist <= KEYSTONE_MAX_DIST ? ks.name : nearest(notables, sp).name;
+    const name = ks.name && ks.dist <= LARGE_RADIUS ? ks.name : nearest(notables, sp).name;
     if (name) out[sid] = name;
   }
   return out;

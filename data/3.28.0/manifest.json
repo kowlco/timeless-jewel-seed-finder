@@ -1,7 +1,7 @@
 {
   "treeVersion": "3.28.0",
   "patch": "3.28.0.14.3",
-  "extractedAt": "2026-07-07T18:21:56.015Z",
+  "extractedAt": "2026-07-07T18:42:47.378Z",
   "checksums": {
     "tree.json": "3d520cebc2e29d6f82a5f8ada7a2c592efca92b590b8d943ee79e935e7118cfd",
     "alternate_tree_versions.json": "5845196c58bfa6aed5aa1f6a18a97a4b4ce44d79422eb0d68bbd405dd46f6e3b",
@@ -10,6 +10,6 @@
     "passive_skills.json": "cf0430c5ff8a51383f92430b86ad84438662698f8a4b115de1bec76ffbf671d3",
     "stats.json": "0fffe26f4391adaba0bc92e7e33cdbd0692b11d2c40b60a79c9e0119368db8c8",
     "stat_descriptions.json": "23d4b9124e908c9d1e265f4b572450b07b48365c902d6e9f6b01d35bdcebac3e",
-    "socket_names.json": "f63a0f0e99199ce034025d8e4a7c7b5329d00b696c311baf20ab694de06eccac"
+    "socket_names.json": "8f266f5ac92ecc265e7c23264a1d49731bd1c294cdb36a9ec0851e285925bed7"
   }
 }
