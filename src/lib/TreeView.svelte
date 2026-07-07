@@ -70,7 +70,10 @@
     for (const p of tables.passiveByIndex.values()) g2i.set(p.graphId, p.index);
     const altById = new Map(tables.allAltSkills.map((s) => [s.index, s]));
     const addById = new Map(tables.allAltAdditions.map((a) => [a.index, a]));
-    const statLine = (key: number, val: number) => `${statNames.get(key) ?? '#' + key}: ${val}`;
+    const statLine = (key: number, val: number) => {
+      const t = statNames.get(key) ?? `#${key}`;
+      return t.includes('#') ? t.replace('#', String(val)) : `${t}: ${val}`;
+    };
 
     const out: VNode[] = [];
     for (const nodeId of nodesInRadius(r.socketId, tree)) {

@@ -31,19 +31,20 @@ let cache: Promise<TreeAssets> | null = null;
 export function loadTreeAssets(): Promise<TreeAssets> {
   if (!cache) {
     cache = (async () => {
-      const [passives, atv, altSkills, altAdds, stats, tree] = await Promise.all([
+      const [passives, atv, altSkills, altAdds, stats, statDesc, tree] = await Promise.all([
         fetchJson<Record<string, unknown>[]>('passive_skills.json'),
         fetchJson<Record<string, unknown>[]>('alternate_tree_versions.json'),
         fetchJson<(Record<string, unknown> & { Name?: string })[]>('alternate_passive_skills.json'),
         fetchJson<Record<string, unknown>[]>('alternate_passive_additions.json'),
         fetchJson<{ _index: number; Id: string }[]>('stats.json'),
+        fetchJson<Record<string, string>>('stat_descriptions.json'),
         fetchJson<TreeData>('tree.json'),
       ]);
       const tables = buildTables(passives, atv, altSkills, altAdds);
       const altSkillNames = new Map<number, string>();
       for (const r of altSkills) altSkillNames.set(r._index as number, (r.Name as string) ?? '');
       const statNames = new Map<number, string>();
-      for (const s of stats) statNames.set(s._index, s.Id);
+      for (const s of stats) statNames.set(s._index, statDesc[s.Id] ?? s.Id);
       const graphToNode = new Map<number, { name: string }>();
       for (const [, n] of Object.entries(
         tree.nodes as Record<string, { skill?: number; name?: string }>,

@@ -72,6 +72,12 @@ function runJewel(jewel: JewelType) {
   }
   const statId = new Map<number, string>();
   for (const r of load('stats.json') as { _index: number; Id: string }[]) statId.set(r._index, r.Id);
+  const statDesc = load('stat_descriptions.json') as Record<string, string>;
+  // stat outcome index -> human label (in-game wording), fallback to the internal id.
+  const statLabel = (idx: number): string => {
+    const sid = statId.get(idx);
+    return (sid && statDesc[sid]) || sid || `stat:${idx}`;
+  };
 
   // Valid transformable passive indices per socket (radius is seed/variant independent).
   const sockets = tree.jewelSlots.slice(0, maxSockets);
@@ -152,7 +158,7 @@ function runJewel(jewel: JewelType) {
     const kind = id.slice(0, sep);
     const n = Number(id.slice(sep + 1));
     if (kind === 'notable' || kind === 'keystone') labels[id] = altSkillMeta.get(n)?.name || id;
-    else if (kind === 'stat') labels[id] = statId.get(n) || id;
+    else if (kind === 'stat') labels[id] = statLabel(n);
     else labels[id] = id;
   }
   writeFileSync(resolve(outDir, `${jewel}.labels.json`), JSON.stringify(labels));

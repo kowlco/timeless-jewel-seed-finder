@@ -18,6 +18,7 @@ import {
   SCHEMA_URL,
   type SchemaTable,
 } from './dat-lib';
+import { parseStatDescriptions } from './stat-descriptions';
 
 const POE1 = 1; // schema validFor bit
 
@@ -178,12 +179,27 @@ async function main() {
   const passive_skills = rowsFromTable(passives, await readTable(loader, dat, passives));
   // Stats is large; we only need the string Id per row index (StatsKeys reference these).
   const statsRead = await readTable(loader, dat, stats);
-  const stat_translations = null; // deferred (Plan 2 render); MVP English only, done later
   const statsIdCol = stats.columns.findIndex((c) => (c.name || '') === 'Id');
   const stats_ids = statsRead.columns[statsIdCol === -1 ? 0 : statsIdCol].map((id, i) => ({
     _index: i,
     Id: id as string,
   }));
+
+  // English stat descriptions (in-game wording) so stats are searchable by text.
+  console.log('parsing stat descriptions ...');
+  const descFiles = [
+    'Metadata/StatDescriptions/stat_descriptions.txt',
+    'Metadata/StatDescriptions/passive_skill_stat_descriptions.txt',
+  ];
+  const stat_descriptions: Record<string, string> = {};
+  for (const f of descFiles) {
+    try {
+      const parsed = parseStatDescriptions(await loader.getFileContents(f));
+      for (const [id, txt] of parsed) if (!(id in stat_descriptions)) stat_descriptions[id] = txt;
+    } catch (e) {
+      console.warn(`skip ${f}: ${String(e).slice(0, 80)}`);
+    }
+  }
 
   const files: Record<string, unknown> = {
     'tree.json': treeJson,
@@ -192,6 +208,7 @@ async function main() {
     'alternate_passive_additions.json': alternate_passive_additions,
     'passive_skills.json': passive_skills,
     'stats.json': stats_ids,
+    'stat_descriptions.json': stat_descriptions,
   };
 
   const checksums: Record<string, string> = {};
@@ -211,7 +228,6 @@ async function main() {
     resolve(__dirname, '../../data/current.json'),
     JSON.stringify({ treeVersion: tree }, null, 2),
   );
-  void stat_translations;
   console.log(
     `done → data/${tree}/ (atv=${alternate_tree_versions.length}, altSkills=${alternate_passive_skills.length}, altAdds=${alternate_passive_additions.length}, passives=${passive_skills.length}, stats=${stats_ids.length})`,
   );
