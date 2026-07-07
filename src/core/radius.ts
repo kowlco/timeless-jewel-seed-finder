@@ -23,6 +23,7 @@ export interface TreeNode {
   name?: string;
   icon?: string;
   stats?: string[];
+  out?: string[];
 }
 export interface SpriteSheet {
   filename: string;

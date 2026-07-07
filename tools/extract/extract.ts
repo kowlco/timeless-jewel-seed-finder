@@ -87,6 +87,7 @@ interface RawTreeNode {
   orbitIndex?: number;
   stats?: string[];
   icon?: string;
+  out?: string[];
   expansionJewel?: unknown; // present on cluster sockets — excluded from timeless slots
 }
 
@@ -116,13 +117,14 @@ function normalizeTree(raw: {
       orbitIndex: n.orbitIndex,
       stats: n.stats ?? [],
       icon: n.icon,
+      out: n.out ?? [],
     };
   }
 
   // Keep only the sprite categories we render, at the highest zoom level. Icons are
   // sub-rects of a sheet hosted on the GGG CDN.
   const sprites: Record<string, SpriteSheet> = {};
-  for (const cat of ['normalActive', 'notableActive', 'keystoneActive', 'mastery']) {
+  for (const cat of ['normalActive', 'notableActive', 'keystoneActive', 'mastery', 'frame']) {
     const byZoom = raw.sprites?.[cat];
     if (!byZoom) continue;
     const zooms = Object.keys(byZoom);

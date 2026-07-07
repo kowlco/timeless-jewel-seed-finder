@@ -2,7 +2,7 @@
   import type { SearchResult, JewelType, Conqueror } from '../core/types';
   import { loadTreeAssets } from '../data/browserData';
   import { calculate } from '../core/transform';
-  import { nodesInRadius, nodeWorldPos, LARGE_RADIUS } from '../core/radius';
+  import { nodesInRadius, nodeWorldPos, orbitAngleAt, LARGE_RADIUS } from '../core/radius';
   import {
     isPassiveSkillValidForAlteration,
     getPassiveSkillType,
@@ -21,31 +21,35 @@
 
   type Kind = 'keystone' | 'notable' | 'stat' | 'plain';
   interface VNode {
+    id: number;
     wx: number;
     wy: number;
+    group?: number;
+    orbit?: number;
+    orbitIndex?: number;
+    out: number[];
     icon?: string;
-    cat: string;
+    iconCat: string;
+    frame: string;
     kind: Kind;
-    label?: string;
+    highlight: boolean;
     title: string;
     lines: string[];
   }
 
   const SIZE = 520;
-  const COLORS: Record<Kind, string> = {
-    keystone: '#e5c07b',
-    notable: '#7aa2f7',
-    stat: '#98c379',
-    plain: '#4a4a52',
-  };
-  const ICON_SIZE: Record<Kind, number> = { keystone: 30, notable: 24, stat: 15, plain: 12 };
+  const FRAME = { keystone: 54, notable: 40, stat: 22, plain: 20 };
+  const ICON = { keystone: 34, notable: 25, stat: 13, plain: 12 };
+  const RING = { keystone: '#e5c07b', notable: '#7aa2f7', stat: '#98c379', plain: '#4a4a52' };
 
   let canvas: HTMLCanvasElement | undefined = $state();
   let tip = $state<{ x: number; y: number; node: VNode } | null>(null);
 
   let vnodes: VNode[] = [];
+  let vmap = new Map<number, VNode>();
   let hit: { px: number; py: number; r: number; v: VNode }[] = [];
   let center = { x: 0, y: 0 };
+  let lastAssets: Awaited<ReturnType<typeof loadTreeAssets>> | null = null;
   const sheets = new Map<string, HTMLImageElement>();
 
   function sheet(url: string): HTMLImageElement | undefined {
@@ -72,20 +76,40 @@
     for (const nodeId of nodesInRadius(r.socketId, tree)) {
       const node = tree.nodes[String(nodeId)];
       if (!node) continue;
-      const { x, y } = nodeWorldPos(node, tree);
+      const pos = nodeWorldPos(node, tree);
       const name = node.name ?? `#${nodeId}`;
+      const outIds = (node.out ?? []).map(Number);
       const idx = g2i.get(nodeId);
       const passive = idx === undefined ? undefined : tables.passiveByIndex.get(idx);
+      const base = {
+        id: nodeId,
+        wx: pos.x,
+        wy: pos.y,
+        group: node.group,
+        orbit: node.orbit,
+        orbitIndex: node.orbitIndex,
+        out: outIds,
+      };
 
       if (!passive || !isPassiveSkillValidForAlteration(passive)) {
-        out.push({ wx: x, wy: y, icon: node.icon, cat: 'normalActive', kind: 'plain', title: name, lines: node.stats ?? [] });
+        out.push({
+          ...base,
+          icon: node.icon,
+          iconCat: 'normalActive',
+          frame: 'PSSkillFrameActive',
+          kind: 'plain',
+          highlight: false,
+          title: name,
+          lines: node.stats ?? [],
+        });
         continue;
       }
       const info = calculate(idx!, r.seed, jewel, conq, tables);
       const lines: string[] = [];
       let kind: Kind = 'stat';
-      let label: string | undefined;
-      let cat = 'normalActive';
+      let iconCat = 'normalActive';
+      let frame = 'PSSkillFrameActive';
+      let highlight = false;
 
       if (info.skill !== null) {
         const alt = altById.get(info.skill);
@@ -93,12 +117,15 @@
         const t = getPassiveSkillType(passive);
         if (t === PassiveSkillType.KeyStone) {
           kind = 'keystone';
-          cat = 'keystoneActive';
+          iconCat = 'keystoneActive';
+          frame = 'KeystoneFrameAllocated';
+          highlight = true;
         } else if (t === PassiveSkillType.Notable) {
           kind = 'notable';
-          cat = 'notableActive';
-        } else kind = 'stat';
-        if (kind !== 'stat') label = to;
+          iconCat = 'notableActive';
+          frame = 'NotableFrameAllocated';
+          highlight = true;
+        }
         lines.push(`→ ${to}`);
         if (alt) info.statRolls.forEach((v, i) => lines.push(statLine(alt.statsKeys[i], v)));
       }
@@ -106,84 +133,122 @@
         const a = addById.get(add.addition);
         if (a) add.statRolls.forEach((v, i) => lines.push('+ ' + statLine(a.statsKeys[i], v)));
       }
-      out.push({ wx: x, wy: y, icon: node.icon, cat, kind, label, title: name, lines });
+      out.push({ ...base, icon: node.icon, iconCat, frame, kind, highlight, title: name, lines });
     }
     return out;
   }
 
   function draw() {
     const ctx = canvas?.getContext('2d');
-    if (!ctx || !canvas) return;
+    const assets = lastAssets;
+    if (!ctx || !canvas || !assets) return;
     const dpr = window.devicePixelRatio || 1;
     canvas.width = SIZE * dpr;
     canvas.height = SIZE * dpr;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    ctx.clearRect(0, 0, SIZE, SIZE);
 
-    const margin = 30;
+    ctx.fillStyle = '#080c11';
+    ctx.fillRect(0, 0, SIZE, SIZE);
+
+    const margin = 34;
     const scale = (SIZE / 2 - margin) / LARGE_RADIUS;
     const cx = SIZE / 2;
     const cy = SIZE / 2;
     const tx = (x: number) => cx + (x - center.x) * scale;
     const ty = (y: number) => cy + (y - center.y) * scale;
+    const { orbitRadii, skillsPerOrbit } = assets.tree.constants;
 
-    ctx.strokeStyle = '#3a3a44';
-    ctx.lineWidth = 1;
+    // connections (under nodes)
+    ctx.strokeStyle = '#524518';
+    ctx.lineWidth = 3.5;
+    const done = new Set<string>();
+    for (const n of vnodes) {
+      for (const oid of n.out) {
+        const t = vmap.get(oid);
+        if (!t) continue;
+        const key = Math.min(n.id, oid) + ':' + Math.max(n.id, oid);
+        if (done.has(key)) continue;
+        done.add(key);
+        ctx.beginPath();
+        if (n.group !== t.group || n.orbit !== t.orbit || n.orbit === undefined) {
+          ctx.moveTo(tx(n.wx), ty(n.wy));
+          ctx.lineTo(tx(t.wx), ty(t.wy));
+        } else {
+          const g = assets.tree.groups[String(n.group)];
+          const toA = (deg: number) => Math.PI / 180 - (Math.PI / 180) * deg - Math.PI / 2;
+          const a = toA(orbitAngleAt(n.orbit!, n.orbitIndex!, skillsPerOrbit));
+          const b = toA(orbitAngleAt(t.orbit!, t.orbitIndex!, skillsPerOrbit));
+          const diff = Math.abs(Math.max(a, b) - Math.min(a, b));
+          const fa = diff > Math.PI ? Math.max(a, b) : Math.min(a, b);
+          const fb = diff > Math.PI ? Math.min(a, b) : Math.max(a, b);
+          ctx.arc(tx(g.x), ty(g.y), orbitRadii[n.orbit!] * scale + 1, fa, fb);
+        }
+        ctx.stroke();
+      }
+    }
+
+    // radius circle
+    ctx.strokeStyle = '#2f2a1a';
+    ctx.lineWidth = 1.5;
     ctx.beginPath();
     ctx.arc(cx, cy, LARGE_RADIUS * scale, 0, Math.PI * 2);
     ctx.stroke();
 
-    const assets = lastAssets;
+    // nodes: plain/stat first, highlighted on top
     hit = [];
     const order: Kind[] = ['plain', 'stat', 'notable', 'keystone'];
+    const frameSheetUrl = assets.tree.sprites?.frame?.filename;
     for (const kind of order) {
       for (const n of vnodes) {
         if (n.kind !== kind) continue;
         const px = tx(n.wx);
         const py = ty(n.wy);
-        const size = ICON_SIZE[kind];
-        const coord = n.icon ? assets?.tree.sprites?.[n.cat]?.coords?.[n.icon] : undefined;
-        const url = assets?.tree.sprites?.[n.cat]?.filename;
-        const img = coord && url ? sheet(url) : undefined;
-        if (img && coord) {
-          ctx.drawImage(img, coord.x, coord.y, coord.w, coord.h, px - size / 2, py - size / 2, size, size);
-        } else {
-          ctx.fillStyle = COLORS[kind];
+        const fsize = FRAME[kind];
+        const isize = ICON[kind];
+
+        // glow for highlighted
+        if (n.highlight) {
           ctx.beginPath();
-          ctx.arc(px, py, size / 3, 0, Math.PI * 2);
+          ctx.fillStyle = kind === 'keystone' ? 'rgba(229,192,123,0.18)' : 'rgba(122,162,247,0.18)';
+          ctx.arc(px, py, fsize * 0.75, 0, Math.PI * 2);
           ctx.fill();
         }
-        if (kind === 'keystone' || kind === 'notable') {
-          ctx.strokeStyle = COLORS[kind];
-          ctx.lineWidth = 2;
+
+        // frame
+        const fc = assets.tree.sprites?.frame?.coords?.[n.frame];
+        const fimg = fc && frameSheetUrl ? sheet(frameSheetUrl) : undefined;
+        if (fimg && fc)
+          ctx.drawImage(fimg, fc.x, fc.y, fc.w, fc.h, px - fsize / 2, py - fsize / 2, fsize, fsize);
+
+        // icon
+        const iSheet = assets.tree.sprites?.[n.iconCat];
+        const ic = n.icon ? iSheet?.coords?.[n.icon] : undefined;
+        const iimg = ic && iSheet ? sheet(iSheet.filename) : undefined;
+        if (iimg && ic)
+          ctx.drawImage(iimg, ic.x, ic.y, ic.w, ic.h, px - isize / 2, py - isize / 2, isize, isize);
+        else {
+          ctx.fillStyle = RING[kind];
           ctx.beginPath();
-          ctx.arc(px, py, size / 2 + 2, 0, Math.PI * 2);
-          ctx.stroke();
+          ctx.arc(px, py, isize / 3, 0, Math.PI * 2);
+          ctx.fill();
         }
-        hit.push({ px, py, r: Math.max(size / 2, 8), v: n });
+        hit.push({ px, py, r: Math.max(fsize / 2, 9), v: n });
       }
     }
 
+    // socket marker
     ctx.strokeStyle = '#fff';
     ctx.lineWidth = 2;
     ctx.beginPath();
-    ctx.arc(cx, cy, 5, 0, Math.PI * 2);
+    ctx.arc(cx, cy, 6, 0, Math.PI * 2);
     ctx.stroke();
-
-    ctx.font = '11px system-ui, sans-serif';
-    ctx.textBaseline = 'middle';
-    for (const n of vnodes) {
-      if ((n.kind === 'keystone' || n.kind === 'notable') && n.label) {
-        ctx.fillStyle = COLORS[n.kind];
-        ctx.fillText(n.label, tx(n.wx) + ICON_SIZE[n.kind] / 2 + 3, ty(n.wy));
-      }
-    }
   }
 
   function onMove(e: MouseEvent) {
     const rect = canvas!.getBoundingClientRect();
-    const mx = e.clientX - rect.left;
-    const my = e.clientY - rect.top;
+    const sx = SIZE / rect.width;
+    const mx = (e.clientX - rect.left) * sx;
+    const my = (e.clientY - rect.top) * sx;
     let best: (typeof hit)[number] | null = null;
     let bestD = Infinity;
     for (const h of hit) {
@@ -193,10 +258,8 @@
         best = h;
       }
     }
-    tip = best ? { x: mx, y: my, node: best.v } : null;
+    tip = best ? { x: mx / sx, y: my / sx, node: best.v } : null;
   }
-
-  let lastAssets: Awaited<ReturnType<typeof loadTreeAssets>> | null = null;
 
   $effect(() => {
     const r = result;
@@ -209,6 +272,7 @@
       const socket = assets.tree.nodes[String(r.socketId)];
       center = nodeWorldPos(socket, assets.tree);
       vnodes = build(assets, r, conq);
+      vmap = new Map(vnodes.map((v) => [v.id, v]));
       draw();
     });
   });
@@ -219,8 +283,8 @@
     <div class="legend">
       <span class="k keystone">keystone</span>
       <span class="k notable">notable</span>
-      <span class="k stat">stat/augment</span>
-      <span class="k plain">unaffected</span>
+      <span class="k stat">stat / augment</span>
+      <span class="dim">hover a node for details</span>
     </div>
     <div class="canvas-wrap">
       <canvas
@@ -232,10 +296,10 @@
       {#if tip}
         <div
           class="tooltip"
-          style="left:{Math.min(tip.x + 12, SIZE - 220)}px;top:{Math.min(tip.y + 12, SIZE - 20)}px"
+          style="left:{Math.min(tip.x + 14, SIZE - 230)}px;top:{Math.min(tip.y + 8, SIZE - 40)}px"
         >
           <strong>{tip.node.title}</strong>
-          {#each tip.node.lines as l (l)}<div class="tl">{l}</div>{/each}
+          {#each tip.node.lines as l (l)}<div class="tl" class:to={l.startsWith('→')}>{l}</div>{/each}
           {#if tip.node.lines.length === 0}<div class="tl dim">unchanged</div>{/if}
         </div>
       {/if}
@@ -258,15 +322,18 @@
   }
   canvas {
     display: block;
-    background: #0d0d10;
+    background: #080c11;
     border-radius: 8px;
     max-width: 100%;
+    height: auto;
   }
   .legend {
     display: flex;
+    flex-wrap: wrap;
     gap: 0.75rem;
     margin-bottom: 0.6rem;
     font-size: 0.75rem;
+    align-items: center;
   }
   .k::before {
     content: '';
@@ -286,19 +353,19 @@
   .k.stat::before {
     background: #98c379;
   }
-  .k.plain::before {
-    background: #4a4a52;
+  .dim {
+    color: #777;
   }
   .tooltip {
     position: absolute;
     pointer-events: none;
     max-width: 240px;
-    background: #000d;
-    border: 1px solid #444;
+    background: #000e;
+    border: 1px solid #555;
     border-radius: 6px;
     padding: 0.4rem 0.55rem;
     font-size: 0.78rem;
-    line-height: 1.35;
+    line-height: 1.4;
     z-index: 10;
   }
   .tooltip strong {
@@ -306,6 +373,10 @@
   }
   .tl {
     color: #bbb;
+  }
+  .tl.to {
+    color: #e5c07b;
+    font-weight: 600;
   }
   .tl.dim {
     color: #777;
