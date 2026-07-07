@@ -121,7 +121,7 @@ function runJewel(jewel: JewelType) {
 
   const raw = encoder.finish();
   const gz = gzipSync(raw, { level: 9 });
-  const outDir = resolve(ROOT, 'data/shards', version);
+  const outDir = resolve(ROOT, 'public/shards', version);
   mkdirSync(outDir, { recursive: true });
   writeFileSync(resolve(outDir, `${jewel}.bin.gz`), gz);
   const meta = {

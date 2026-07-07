@@ -8,3 +8,6 @@ tools/extract/work/
 
 # precompute shards (encoding under review at size gate)
 data/shards/
+
+# generated shards
+public/shards/
