@@ -86,6 +86,7 @@ interface RawTreeNode {
   orbit?: number;
   orbitIndex?: number;
   stats?: string[];
+  expansionJewel?: unknown; // present on cluster sockets — excluded from timeless slots
 }
 function normalizeTree(raw: {
   nodes: Record<string, RawTreeNode>;
@@ -111,12 +112,15 @@ function normalizeTree(raw: {
   }
   const groups: Record<string, { x: number; y: number }> = {};
   for (const [id, g] of Object.entries(raw.groups)) groups[id] = { x: g.x, y: g.y };
+  // Timeless jewels go only in regular (non-cluster) sockets. Cluster sockets carry
+  // an `expansionJewel` property — exclude them.
+  const timelessSlots = raw.jewelSlots.filter((id) => !raw.nodes[String(id)]?.expansionJewel);
   return {
     constants: {
       orbitRadii: raw.constants.orbitRadii,
       skillsPerOrbit: raw.constants.skillsPerOrbit,
     },
-    jewelSlots: raw.jewelSlots,
+    jewelSlots: timelessSlots,
     groups,
     nodes,
   };

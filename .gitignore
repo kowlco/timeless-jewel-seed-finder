@@ -5,3 +5,6 @@ dist/
 
 # extraction scratch (bundle cache + intermediate table dumps)
 tools/extract/work/
+
+# precompute shards (encoding under review at size gate)
+data/shards/

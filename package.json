@@ -10,7 +10,8 @@
     "check": "svelte-check --tsconfig ./tsconfig.app.json && tsc -p tsconfig.node.json",
     "test": "vitest run",
     "test:watch": "vitest",
-    "extract": "tsx tools/extract/extract.ts"
+    "extract": "tsx tools/extract/extract.ts",
+    "precompute": "tsx tools/precompute/precompute.ts"
   },
   "devDependencies": {
     "@sveltejs/vite-plugin-svelte": "^7.1.2",
