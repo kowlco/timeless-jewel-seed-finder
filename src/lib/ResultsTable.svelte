@@ -1,17 +1,24 @@
 <script lang="ts">
-  import type { SearchResult, Conqueror } from '../core/types';
+  import type { SearchResult, Conqueror, JewelType } from '../core/types';
+  import { buildTradeUrl } from '../core/trade';
 
   let {
     results,
     labels,
     conquerors,
+    jewel,
+    league = 'Standard',
   }: {
     results: SearchResult[];
     labels: Record<string, string>;
     conquerors: Conqueror[];
+    jewel: JewelType;
+    league?: string;
   } = $props();
 
   const label = (id: string) => labels[id] ?? id;
+  const tradeHref = (r: SearchResult) =>
+    buildTradeUrl(jewel, conquerors[r.variant]?.name ?? '', r.seed, league);
 </script>
 
 {#if results.length}
@@ -20,7 +27,7 @@
     <div class="scroll">
       <table>
         <thead>
-          <tr><th>#</th><th>Variant</th><th>Seed</th><th>Socket</th><th>Score</th><th>Gives</th></tr>
+          <tr><th>#</th><th>Variant</th><th>Seed</th><th>Socket</th><th>Score</th><th>Gives</th><th>Buy</th></tr>
         </thead>
         <tbody>
           {#each results as r, i (`${r.variant}-${r.socketId}-${r.seed}`)}
@@ -34,6 +41,9 @@
                 {#each r.breakdown as b (b.outcomeId)}
                   <span class="pill">{label(b.outcomeId)}{#if b.count > 1}<em>×{b.count}</em>{/if}</span>
                 {/each}
+              </td>
+              <td>
+                <a class="trade" href={tradeHref(r)} target="_blank" rel="noopener noreferrer">trade ↗</a>
               </td>
             </tr>
           {/each}
@@ -97,5 +107,13 @@
     color: #999;
     font-style: normal;
     margin-left: 0.2rem;
+  }
+  .trade {
+    color: #7aa2f7;
+    text-decoration: none;
+    white-space: nowrap;
+  }
+  .trade:hover {
+    text-decoration: underline;
   }
 </style>

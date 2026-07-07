@@ -148,7 +148,7 @@
     {#if status === 'error'}<p class="err">{errorMsg}</p>{/if}
   </section>
 
-  <ResultsTable {results} {labels} conquerors={CONQUERORS[jewel]} />
+  <ResultsTable {results} {labels} {jewel} conquerors={CONQUERORS[jewel]} />
 </main>
 
 <style>
