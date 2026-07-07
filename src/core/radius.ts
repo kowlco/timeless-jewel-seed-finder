@@ -20,12 +20,20 @@ export interface TreeNode {
   group?: number;
   orbit?: number;
   orbitIndex?: number;
+  name?: string;
+  icon?: string;
+  stats?: string[];
+}
+export interface SpriteSheet {
+  filename: string;
+  coords: Record<string, { x: number; y: number; w: number; h: number }>;
 }
 export interface TreeData {
   constants: { orbitRadii: number[]; skillsPerOrbit: number[] };
   groups: Record<string, { x: number; y: number }>;
   nodes: Record<string, TreeNode>;
   jewelSlots: number[];
+  sprites?: Record<string, SpriteSheet>;
 }
 
 export function orbitAngleAt(orbit: number, index: number, skillsPerOrbit: number[]): number {

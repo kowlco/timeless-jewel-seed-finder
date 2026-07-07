@@ -55,6 +55,7 @@ export interface Tables {
   passiveByIndex: Map<number, PassiveSkill>;
   atvByIndex: Map<number, AltTreeVersion>;
   allAltSkills: AltSkill[];
+  allAltAdditions: AltAddition[];
   reverseSkills: Map<number, Map<number, AltSkill[]>>;
   reverseAdditions: Map<number, Map<number, AltAddition[]>>;
 }
@@ -140,7 +141,14 @@ export function buildTables(
     }
   }
 
-  return { passiveByIndex, atvByIndex, allAltSkills, reverseSkills, reverseAdditions };
+  return {
+    passiveByIndex,
+    atvByIndex,
+    allAltSkills,
+    allAltAdditions,
+    reverseSkills,
+    reverseAdditions,
+  };
 }
 
 export function isSmallAttribute(stat: number): boolean {

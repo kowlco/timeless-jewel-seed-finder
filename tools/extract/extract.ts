@@ -86,13 +86,20 @@ interface RawTreeNode {
   orbit?: number;
   orbitIndex?: number;
   stats?: string[];
+  icon?: string;
   expansionJewel?: unknown; // present on cluster sockets — excluded from timeless slots
+}
+
+interface SpriteSheet {
+  filename: string;
+  coords: Record<string, { x: number; y: number; w: number; h: number }>;
 }
 function normalizeTree(raw: {
   nodes: Record<string, RawTreeNode>;
   groups: Record<string, { x: number; y: number }>;
   jewelSlots: number[];
   constants: { orbitRadii: number[]; skillsPerOrbit: number[] };
+  sprites: Record<string, Record<string, SpriteSheet>>;
 }) {
   const nodes: Record<string, RawTreeNode> = {};
   for (const [id, n] of Object.entries(raw.nodes)) {
@@ -108,7 +115,18 @@ function normalizeTree(raw: {
       orbit: n.orbit,
       orbitIndex: n.orbitIndex,
       stats: n.stats ?? [],
+      icon: n.icon,
     };
+  }
+
+  // Keep only the sprite categories we render, at the highest zoom level. Icons are
+  // sub-rects of a sheet hosted on the GGG CDN.
+  const sprites: Record<string, SpriteSheet> = {};
+  for (const cat of ['normalActive', 'notableActive', 'keystoneActive', 'mastery']) {
+    const byZoom = raw.sprites?.[cat];
+    if (!byZoom) continue;
+    const zooms = Object.keys(byZoom);
+    sprites[cat] = byZoom[zooms[zooms.length - 1]];
   }
   const groups: Record<string, { x: number; y: number }> = {};
   for (const [id, g] of Object.entries(raw.groups)) groups[id] = { x: g.x, y: g.y };
@@ -123,6 +141,7 @@ function normalizeTree(raw: {
     jewelSlots: timelessSlots,
     groups,
     nodes,
+    sprites,
   };
 }
 

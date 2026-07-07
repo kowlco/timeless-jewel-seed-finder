@@ -152,25 +152,29 @@
     {#if status === 'error'}<p class="err">{errorMsg}</p>{/if}
   </section>
 
-  <ResultsTable
-    {results}
-    {labels}
-    {jewel}
-    {selected}
-    conquerors={CONQUERORS[jewel]}
-    onselect={(r) => (selected = r)}
-  />
-  {#if selected}
-    <div class="detail">
-      <TreeView result={selected} {jewel} conqueror={CONQUERORS[jewel][selected.variant]} />
-      <SocketBreakdown result={selected} {jewel} conqueror={CONQUERORS[jewel][selected.variant]} />
+  <div class="results-area" class:split={!!selected}>
+    <div class="table-col">
+      <ResultsTable
+        {results}
+        {labels}
+        {jewel}
+        {selected}
+        conquerors={CONQUERORS[jewel]}
+        onselect={(r) => (selected = r)}
+      />
     </div>
-  {/if}
+    {#if selected}
+      <aside class="detail-col">
+        <TreeView result={selected} {jewel} conqueror={CONQUERORS[jewel][selected.variant]} />
+        <SocketBreakdown result={selected} {jewel} conqueror={CONQUERORS[jewel][selected.variant]} />
+      </aside>
+    {/if}
+  </div>
 </main>
 
 <style>
   main {
-    max-width: 960px;
+    max-width: 1400px;
     margin: 0 auto;
     padding: 1.5rem;
     font-family: system-ui, sans-serif;
@@ -312,13 +316,31 @@
   .err {
     color: #e06c75;
   }
-  .detail {
+  .results-area {
     display: flex;
-    flex-wrap: wrap;
-    gap: 1rem;
+    gap: 1.25rem;
     align-items: flex-start;
   }
-  .detail > :global(*) {
-    flex: 1 1 320px;
+  .table-col {
+    flex: 1;
+    min-width: 0;
+  }
+  .detail-col {
+    flex: none;
+    width: 560px;
+    position: sticky;
+    top: 1rem;
+    max-height: calc(100vh - 2rem);
+    overflow-y: auto;
+  }
+  @media (max-width: 1120px) {
+    .results-area {
+      flex-direction: column;
+    }
+    .detail-col {
+      position: static;
+      width: 100%;
+      max-height: none;
+    }
   }
 </style>

@@ -1,9 +1,9 @@
 {
   "treeVersion": "3.28.0",
   "patch": "3.28.0.14.3",
-  "extractedAt": "2026-07-07T13:12:17.368Z",
+  "extractedAt": "2026-07-07T14:36:24.030Z",
   "checksums": {
-    "tree.json": "bd7d974c00d8928956d25570ceab25970f426fdeb6c645c52eb7294d1e3c9d93",
+    "tree.json": "4ce16a7a6bd22c7bada2c13888eb5d36971012b21bf3d4933e9b30bb69567f79",
     "alternate_tree_versions.json": "5845196c58bfa6aed5aa1f6a18a97a4b4ce44d79422eb0d68bbd405dd46f6e3b",
     "alternate_passive_skills.json": "6fe71974f8697103b14582143af85b2d8397d72221b9556e61324f62220da1a0",
     "alternate_passive_additions.json": "d9a42e4740fb088a42870de23e90d84c8780d34f964b18ed91d040941b218113",
