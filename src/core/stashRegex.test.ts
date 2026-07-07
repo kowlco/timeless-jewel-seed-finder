@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildSeedRegex, buildStashQuery } from './stashRegex';
+import { buildSeedRegex, buildStashQuery, distinctFragment } from './stashRegex';
 
 // Every produced regex must actually match all of its input seeds (as the whole
 // string) and the compression must hit the documented compact forms.
@@ -57,9 +57,9 @@ describe('buildStashQuery', () => {
     expect(buildStashQuery(picks, conq, false)).toBe('198[15]');
   });
 
-  it('ties each seed to its conqueror when enabled', () => {
+  it('ties each seed to its conqueror, shortened, when enabled', () => {
     const picks = [{ variant: 0, seed: 1981 }];
-    expect(buildStashQuery(picks, conq, true)).toBe('1981.*Xibaqua');
+    expect(buildStashQuery(picks, conq, true)).toBe('1981.*Xib');
   });
 
   it('groups seeds per conqueror across variants', () => {
@@ -68,7 +68,7 @@ describe('buildStashQuery', () => {
       { variant: 0, seed: 1985 },
       { variant: 1, seed: 2022 },
     ];
-    expect(buildStashQuery(picks, conq, true)).toBe('(198[15].*Xibaqua|2022.*Zerphi)');
+    expect(buildStashQuery(picks, conq, true)).toBe('(198[15].*Xib|2022.*Zer)');
   });
 
   it('matches the seed+conqueror in real jewel text but not another conqueror', () => {
@@ -76,5 +76,20 @@ describe('buildStashQuery', () => {
     const rx = new RegExp(re);
     expect(rx.test('Bathed in the blood of 1981 sacrificed in the name of Xibaqua')).toBe(true);
     expect(rx.test('Bathed in the blood of 1981 sacrificed in the name of Zerphi')).toBe(false);
+  });
+});
+
+describe('distinctFragment', () => {
+  it('finds the shortest unique slice per conqueror', () => {
+    const gv = ['Xibaqua', 'Zerphi', 'Ahuana', 'Doryani'];
+    expect(distinctFragment('Xibaqua', gv)).toBe('Xib');
+    expect(distinctFragment('Doryani', gv)).toBe('Dor');
+  });
+
+  it('keeps enough characters to separate a shared prefix', () => {
+    const eh = ['Cadiro', 'Victario', 'Caspiro'];
+    // Cadiro/Caspiro share "Ca"; the 3-char slice still separates them.
+    expect(distinctFragment('Cadiro', eh)).toBe('Cad');
+    expect(distinctFragment('Caspiro', eh)).toBe('Cas');
   });
 });

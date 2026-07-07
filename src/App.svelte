@@ -184,7 +184,12 @@
 
   <div class="results-area" class:split={!!selected}>
     <div class="table-col">
-      <StashRegex picks={picks} conquerors={CONQUERORS[jewel]} onclear={() => (picks = [])} />
+      <StashRegex
+        picks={picks}
+        {jewel}
+        conquerors={CONQUERORS[jewel]}
+        onclear={() => (picks = [])}
+      />
       <ResultsTable
         {results}
         {labels}

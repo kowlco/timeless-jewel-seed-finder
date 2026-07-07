@@ -74,3 +74,38 @@ export function buildTradeUrl(
   const q = JSON.stringify(buildTradeQuery(jewel, conqueror, seed));
   return `https://www.pathofexile.com/trade/search/${encodeURIComponent(league)}?q=${encodeURIComponent(q)}`;
 }
+
+// One search matching ANY of the picked (conqueror, seed) jewels. A `count` stat
+// group with `min: 1` is an OR across its filters, so each pick contributes one
+// enabled filter pinned to its own conqueror pseudo-stat and exact seed.
+export function buildMultiTradeQuery(
+  jewel: JewelType,
+  picks: { variant: number; seed: number }[],
+  conquerorNames: string[],
+) {
+  const names = TRADE_STAT_NAMES[jewel];
+  if (!names) throw new Error(`unknown jewel ${jewel}`);
+  const filters = picks.map((p) => {
+    const conqueror = conquerorNames[p.variant];
+    const id = names[conqueror];
+    if (!id) throw new Error(`unknown conqueror "${conqueror}" for jewel ${jewel}`);
+    return { id, value: { min: p.seed, max: p.seed }, disabled: false };
+  });
+  return {
+    query: {
+      status: { option: 'any' },
+      stats: [{ type: 'count', value: { min: 1 }, disabled: false, filters }],
+    },
+    sort: { price: 'asc' },
+  };
+}
+
+export function buildMultiTradeUrl(
+  jewel: JewelType,
+  picks: { variant: number; seed: number }[],
+  conquerorNames: string[],
+  league = 'Standard',
+): string {
+  const q = JSON.stringify(buildMultiTradeQuery(jewel, picks, conquerorNames));
+  return `https://www.pathofexile.com/trade/search/${encodeURIComponent(league)}?q=${encodeURIComponent(q)}`;
+}

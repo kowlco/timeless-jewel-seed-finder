@@ -89,6 +89,22 @@ export interface SeedPick {
   seed: number;
 }
 
+// Shortest substring of `name` (length >= minLen) that is not a substring of any
+// other name in `all` (case-insensitive) — enough to identify the conqueror.
+// minLen keeps fragments long enough that a proper-noun slice won't collide with
+// the fixed connective words of the jewel's flavour text (e.g. "sacrificed …").
+export function distinctFragment(name: string, all: string[], minLen = 3): string {
+  const lower = name.toLowerCase();
+  const others = all.filter((n) => n !== name).map((n) => n.toLowerCase());
+  for (let len = Math.min(Math.max(minLen, 1), name.length); len <= name.length; len++) {
+    for (let i = 0; i + len <= name.length; i++) {
+      const frag = lower.slice(i, i + len);
+      if (!others.some((o) => o.includes(frag))) return name.slice(i, i + len);
+    }
+  }
+  return name;
+}
+
 // Build the full stash-search regex for a set of picked (conqueror, seed) jewels.
 //
 // A given seed under a different conqueror is a different jewel, so when
@@ -114,7 +130,8 @@ export function buildStashQuery(
   for (const [variant, seeds] of [...byConqueror.entries()].sort((a, b) => a[0] - b[0])) {
     const seedRe = buildSeedRegex(seeds);
     const conqueror = conquerorNames[variant];
-    parts.push(conqueror ? `${seedRe}.*${conqueror}` : seedRe);
+    // Shrink the conqueror to its shortest distinguishing fragment (Xibaqua → Xib).
+    parts.push(conqueror ? `${seedRe}.*${distinctFragment(conqueror, conquerorNames)}` : seedRe);
   }
   return parts.length === 1 ? parts[0] : `(${parts.join('|')})`;
 }

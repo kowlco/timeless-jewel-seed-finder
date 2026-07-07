@@ -1,14 +1,19 @@
 <script lang="ts">
   import { buildStashQuery, STASH_SEARCH_LIMIT, type SeedPick } from '../core/stashRegex';
-  import type { Conqueror } from '../core/types';
+  import { buildMultiTradeUrl } from '../core/trade';
+  import type { Conqueror, JewelType } from '../core/types';
 
   let {
     picks,
     conquerors,
+    jewel,
+    league = 'Standard',
     onclear,
   }: {
     picks: SeedPick[];
     conquerors: Conqueror[];
+    jewel: JewelType;
+    league?: string;
     onclear?: () => void;
   } = $props();
 
@@ -18,6 +23,7 @@
   const names = $derived(conquerors.map((c) => c.name));
   const regex = $derived(buildStashQuery(picks, names, matchConqueror));
   const over = $derived(regex.length > STASH_SEARCH_LIMIT);
+  const tradeUrl = $derived(picks.length ? buildMultiTradeUrl(jewel, picks, names, league) : '');
 
   async function copy() {
     try {
@@ -33,14 +39,20 @@
 {#if picks.length}
   <section class="stash">
     <div class="head">
-      <h3>Stash search regex <span class="count">· {picks.length} picked</span></h3>
-      <button class="clear" onclick={() => onclear?.()}>clear</button>
+      <h3>Selected seeds <span class="count">· {picks.length} picked</span></h3>
+      <div class="actions">
+        <a class="trade" href={tradeUrl} target="_blank" rel="noopener noreferrer">trade all ↗</a>
+        <button class="clear" onclick={() => onclear?.()}>clear</button>
+      </div>
     </div>
 
-    <label class="opt">
-      <input type="checkbox" bind:checked={matchConqueror} />
-      match conqueror (precise, but longer)
-    </label>
+    <div class="sub">
+      <span class="lbl">Stash search regex</span>
+      <label class="opt">
+        <input type="checkbox" bind:checked={matchConqueror} />
+        match conqueror (precise, but longer)
+      </label>
+    </div>
 
     <div class="box">
       <code class:over>{regex}</code>
@@ -77,6 +89,20 @@
     font-weight: 400;
     font-size: 0.85rem;
   }
+  .actions {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+  }
+  .trade {
+    color: #7aa2f7;
+    text-decoration: none;
+    font-size: 0.9rem;
+    white-space: nowrap;
+  }
+  .trade:hover {
+    text-decoration: underline;
+  }
   .clear {
     background: none;
     border: 1px solid #444;
@@ -85,13 +111,24 @@
     padding: 0.2rem 0.6rem;
     cursor: pointer;
   }
+  .sub {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.6rem;
+    margin: 0.7rem 0 0.4rem;
+    flex-wrap: wrap;
+  }
+  .lbl {
+    color: #aaa;
+    font-size: 0.85rem;
+  }
   .opt {
     display: flex;
     align-items: center;
     gap: 0.4rem;
     color: #ccc;
     font-size: 0.85rem;
-    margin: 0.6rem 0;
   }
   .box {
     display: flex;
