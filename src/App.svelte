@@ -6,6 +6,8 @@
   import ResultsTable from './lib/ResultsTable.svelte';
   import SocketBreakdown from './lib/SocketBreakdown.svelte';
   import TreeView from './lib/TreeView.svelte';
+  import StashRegex from './lib/StashRegex.svelte';
+  import type { SeedPick } from './core/stashRegex';
 
   const JEWELS = [1, 2, 3, 4, 5, 6] as JewelType[];
   const RESULT_CAP = 5000; // safety cap on rendered rows; narrow with minMatches
@@ -18,7 +20,16 @@
   let minMatches = $state(1);
   let results = $state<SearchResult[]>([]);
   let selected = $state<SearchResult | null>(null);
+  let picks = $state<SeedPick[]>([]);
   let socketNames = $state<Record<string, string>>({});
+
+  const pickedKeys = $derived(new Set(picks.map((p) => `${p.variant}:${p.seed}`)));
+  function togglePick(r: SearchResult) {
+    const key = `${r.variant}:${r.seed}`;
+    picks = pickedKeys.has(key)
+      ? picks.filter((p) => `${p.variant}:${p.seed}` !== key)
+      : [...picks, { variant: r.variant, seed: r.seed }];
+  }
   let status = $state<'idle' | 'loading' | 'searching' | 'error'>('idle');
   let errorMsg = $state('');
 
@@ -32,6 +43,7 @@
     const j = jewel;
     status = 'loading';
     labels = {};
+    picks = []; // seeds are jewel-specific
     loadLabels(j)
       .then((l) => {
         labels = l;
@@ -172,15 +184,18 @@
 
   <div class="results-area" class:split={!!selected}>
     <div class="table-col">
+      <StashRegex picks={picks} conquerors={CONQUERORS[jewel]} onclear={() => (picks = [])} />
       <ResultsTable
         {results}
         {labels}
         {jewel}
         {selected}
         {socketNames}
+        {pickedKeys}
         capped={results.length >= RESULT_CAP}
         conquerors={CONQUERORS[jewel]}
         onselect={(r) => (selected = r)}
+        ontogglepick={togglePick}
       />
     </div>
     {#if selected}

@@ -11,7 +11,9 @@
     selected = null,
     socketNames = {},
     capped = false,
+    pickedKeys = new Set<string>(),
     onselect,
+    ontogglepick,
   }: {
     results: SearchResult[];
     labels: Record<string, string>;
@@ -21,8 +23,12 @@
     selected?: SearchResult | null;
     socketNames?: Record<string, string>;
     capped?: boolean;
+    pickedKeys?: Set<string>;
     onselect?: (r: SearchResult) => void;
+    ontogglepick?: (r: SearchResult) => void;
   } = $props();
+
+  const pickKey = (r: SearchResult) => `${r.variant}:${r.seed}`;
 
   const isSel = (r: SearchResult) =>
     selected != null &&
@@ -44,11 +50,19 @@
     <div class="scroll">
       <table>
         <thead>
-          <tr><th>#</th><th>Variant</th><th>Seed</th><th>Socket</th><th>Score</th><th>Gives</th><th>Buy</th></tr>
+          <tr><th title="pick for stash regex">✓</th><th>#</th><th>Variant</th><th>Seed</th><th>Socket</th><th>Score</th><th>Gives</th><th>Buy</th></tr>
         </thead>
         <tbody>
           {#each results as r, i (`${r.variant}-${r.socketId}-${r.seed}`)}
             <tr class:sel={isSel(r)} onclick={() => onselect?.(r)}>
+              <td class="pick">
+                <input
+                  type="checkbox"
+                  checked={pickedKeys.has(pickKey(r))}
+                  onclick={(e) => e.stopPropagation()}
+                  onchange={() => ontogglepick?.(r)}
+                />
+              </td>
               <td class="dim">{i + 1}</td>
               <td>{conquerors[r.variant]?.name ?? `#${r.variant}`}</td>
               <td class="mono">{r.seed}</td>
@@ -115,6 +129,13 @@
   }
   .socket {
     white-space: nowrap;
+  }
+  .pick {
+    text-align: center;
+    padding-right: 0.2rem;
+  }
+  .pick input {
+    cursor: pointer;
   }
   .dim {
     color: #666;
