@@ -34,6 +34,19 @@ All six ≈ **~70 MB gz** total.
   `outcome → postings`, which both compresses far better and is what search actually queries)
   should reach **~3–6 MB/jewel**, comfortably lazy-loadable.
 
+## Update 2026-07-07 (Plan 2 Task 1) — budget revised
+
+Binary varint encoding + dropping redundant `add:` ids brought BR from 12.3 MB → **8.67 MB gz**
+(raw 18.9 MB). Sub-5 MB is unreachable without losing search fidelity: for augment jewels (LP/BR)
+the per-seed stat histograms across ~60–90 nodes ARE the search signal, and their counts matter.
+
+The `<5 MB` figure was a **self-imposed conservative threshold**, not an external requirement.
+Per user sign-off, the budget is relaxed: **ship full-fidelity ~8–9 MB/jewel**, lazy-loaded per
+jewel and browser-cached. Acceptable for a desktop theorycrafting tool. No further encoding work.
+
+Shards are **regenerable** (`npm run precompute -- --jewel N`) and kept out of git; the deploy
+workflow (Task 9) generates them before the Vite build.
+
 ## Decision — DECIDED 2026-07-07 (user sign-off)
 
 **Keep offline precompute.** The naive 12.3 MB/jewel is not shipped as-is: Plan 2 must ship a
@@ -47,3 +60,19 @@ confirm <5 MB/jewel, THEN build search UI, trade links, tree render, deploy.
 Alternative if <5 MB proves unreachable: **hybrid** — ship a small notables/keystones-only index
 (~1–2 MB/jewel) for the common case, and compute stat-level detail for a *selected* result
 on-demand (one socket+seed = milliseconds).
+
+## Final per-jewel sizes (binary + trimmed taxonomy, streaming encoder)
+
+| Jewel | gz | Note |
+|---|---|---|
+| Glorious Vanity | **31.8 MB** | transforms every node (smalls→stats) — the outlier |
+| Elegant Hubris | 10.7 MB | |
+| Lethal Pride | 8.8 MB | |
+| Brutal Restraint | 8.2 MB | |
+| Heroic Tragedy | 6.3 MB | |
+| Militant Faith | 3.6 MB | |
+| **Total** | **~69 MB** | lazy per-jewel; only the selected jewel loads |
+
+Taxonomy: replaced keystone/notable → `keystone:`/`notable:<altId>` (id implies stats);
+replaced small passive & augment additions → `stat:<statKey>`. Streaming `ShardEncoder`
+keeps memory flat. GV remains heavy; revisit only if its load UX proves unacceptable.

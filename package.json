@@ -11,7 +11,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "extract": "tsx tools/extract/extract.ts",
-    "precompute": "tsx tools/precompute/precompute.ts"
+    "precompute": "tsx tools/precompute/precompute.ts",
+    "precompute:all": "node tools/precompute/all.mjs"
   },
   "devDependencies": {
     "@sveltejs/vite-plugin-svelte": "^7.1.2",
