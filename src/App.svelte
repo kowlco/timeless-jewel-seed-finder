@@ -5,6 +5,7 @@
   import type { SearchResult } from './core/types';
   import ResultsTable from './lib/ResultsTable.svelte';
   import SocketBreakdown from './lib/SocketBreakdown.svelte';
+  import TreeView from './lib/TreeView.svelte';
 
   const JEWELS = [1, 2, 3, 4, 5, 6] as JewelType[];
 
@@ -159,7 +160,12 @@
     conquerors={CONQUERORS[jewel]}
     onselect={(r) => (selected = r)}
   />
-  <SocketBreakdown result={selected} {jewel} conqueror={selected ? CONQUERORS[jewel][selected.variant] : undefined} />
+  {#if selected}
+    <div class="detail">
+      <TreeView result={selected} {jewel} conqueror={CONQUERORS[jewel][selected.variant]} />
+      <SocketBreakdown result={selected} {jewel} conqueror={CONQUERORS[jewel][selected.variant]} />
+    </div>
+  {/if}
 </main>
 
 <style>
@@ -305,5 +311,14 @@
   }
   .err {
     color: #e06c75;
+  }
+  .detail {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    align-items: flex-start;
+  }
+  .detail > :global(*) {
+    flex: 1 1 320px;
   }
 </style>
