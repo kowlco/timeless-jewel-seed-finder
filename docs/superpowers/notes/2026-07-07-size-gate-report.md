@@ -34,12 +34,15 @@ All six ≈ **~70 MB gz** total.
   `outcome → postings`, which both compresses far better and is what search actually queries)
   should reach **~3–6 MB/jewel**, comfortably lazy-loadable.
 
-## Decision (needs sign-off — lands in the ambiguous 8–15 MB band per §11)
+## Decision — DECIDED 2026-07-07 (user sign-off)
 
-Recommended: **keep offline precompute**, but treat the encoding as unfinished — Plan 2 must ship
-a compact binary/inverted encoding with a **<5 MB/jewel** budget, and re-measure. On-demand
-worker search is a poor fallback here: a full-jewel pass is ~35 s single-threaded, too slow to run
-per interactive search.
+**Keep offline precompute.** The naive 12.3 MB/jewel is not shipped as-is: Plan 2 must ship a
+compact binary/inverted encoding with a **<5 MB/jewel** budget and re-measure before wiring the UI.
+On-demand worker search was rejected as the primary path (a full-jewel pass is ~35 s
+single-threaded, too slow per interactive search).
+
+Plan 2 entry criteria: implement the compact encoding + `data/loader` + `core/search` against it,
+confirm <5 MB/jewel, THEN build search UI, trade links, tree render, deploy.
 
 Alternative if <5 MB proves unreachable: **hybrid** — ship a small notables/keystones-only index
 (~1–2 MB/jewel) for the common case, and compute stat-level detail for a *selected* result
