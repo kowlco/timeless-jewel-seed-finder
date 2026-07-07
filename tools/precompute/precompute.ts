@@ -115,10 +115,11 @@ function runJewel(jewel: JewelType) {
           const info = calculate(pIdx, seed, jewel, conq, tables);
           if (info.skill !== null) {
             const meta = altSkillMeta.get(info.skill);
+            // Emit the notable/keystone by name AND its stats, so the outcome is
+            // searchable both by name and by the in-game stat text it grants.
             if (meta?.kind === 'keystone') bump(`keystone:${info.skill}`);
             else if (meta?.kind === 'notable') bump(`notable:${info.skill}`);
-            // Replaced small passive → target by the stats it grants.
-            else for (const st of meta?.stats ?? []) bump(`stat:${st}`);
+            for (const st of meta?.stats ?? []) bump(`stat:${st}`);
           }
           for (const add of info.additions) {
             // Augment additions: users target the added stats.
